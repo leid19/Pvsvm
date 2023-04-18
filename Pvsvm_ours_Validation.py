@@ -91,31 +91,28 @@ def get_heart_data():
     df['thal'][df['thal'] == 1] = 'fixed defect'
     df['thal'][df['thal'] == 1] = 'reversable defect'
 
-    # 将离散的定类和定序特征列转为One-Hot独热编码
-    # 将定类数据扩展为特征
+    # Convert discrete categorical and ordinal feature columns into One-Hot encoding, and expand categorical data into features
     df = pd.get_dummies(df)
     # df.head(3)
 
     y = df.target.values
-    y = (y * (2) - 1)  # 将label:0转换为label:-1
+    y = (y * (2) - 1)  
 
     X = df.drop(['target'], axis=1)
     X = np.array(X)
     # pca = PCA()
     # pca.fit(X)
-    # print('降维前',X.shape)
-    # X = pca.transform(X)  # 用它来降低维度
-    # print('降维后',X.shape)
+    # X = pca.transform(X)  
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=10)  # 13
-    # 数据标准化处理
+    # Data standardization
     sc_X = StandardScaler()
     X_train = sc_X.fit_transform(X_train)
     X_test = sc_X.transform(X_test)
 
     one = np.zeros(len(X_train)) + 1
-    X_train = np.column_stack((X_train, one))  # 扩展维度
+    X_train = np.column_stack((X_train, one))  # Extended dimension
     one = np.zeros(len(X_test)) + 1
-    X_test = np.column_stack((X_test, one))  # 扩展维度
+    X_test = np.column_stack((X_test, one))  # Extended dimension
     x_train = X_train.astype(np.float64)
     y_train = y_train.astype(np.int64)
     x_test = X_test.astype(np.float64)
@@ -128,13 +125,13 @@ def get_breast_data():
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)  # 1
 
-    sc_X = StandardScaler()# 数据标准化处理
+    sc_X = StandardScaler()
     X_train = sc_X.fit_transform(X_train)
     X_test = sc_X.transform(X_test)
     one = np.zeros(len(X_train)) + 1
-    X_train = np.column_stack((X_train, one))  # 扩展维度
+    X_train = np.column_stack((X_train, one))  
     one = np.zeros(len(X_test)) + 1
-    X_test = np.column_stack((X_test, one))  # 扩展维度
+    X_test = np.column_stack((X_test, one)) 
     x_train = X_train.astype(np.float64)
     y_train = y_train.astype(np.int64)
     x_test = X_test.astype(np.float64)
@@ -148,7 +145,7 @@ def get_Ionosphere_data():
 
     with open(data_filename, 'r') as input_file:
         reader = csv.reader(input_file)
-        # print(reader)  # csv.reader类型
+
         for i, row in enumerate(reader):
             data = [float(datum) for datum in row[:-1]]
             # Set the appropriate row in our dataset
@@ -156,12 +153,11 @@ def get_Ionosphere_data():
             # 将“g”记为1，将“b”记为0。
             y[i] = bool(row[-1] == 'g')
     y = 2 * y.astype(int) - 1
-    # 划分训练集、测试集
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=8)
     one = np.zeros(len(X_train)) + 1
-    X_train = np.column_stack((X_train, one))  # 扩展维度
+    X_train = np.column_stack((X_train, one)) 
     one = np.zeros(len(X_test)) + 1
-    X_test = np.column_stack((X_test, one))  # 扩展维度
+    X_test = np.column_stack((X_test, one)) 
     x_train = X_train.astype(np.float64)
     y_train = y_train.astype(np.int64)
     x_test = X_test.astype(np.float64)
@@ -218,7 +214,7 @@ def decipher(pk,sk,c):
 def secrekeySplit (pk,sk):
     lmd = sk
     n,g = pk
-    s = (lmd * gmpy2.invert(lmd,n**2)) % (lmd * (n ** 2))#模逆运算
+    s = (lmd * gmpy2.invert(lmd,n**2)) % (lmd * (n ** 2))#Modular inverse operation
 
     lmd1 = random.randint(1, s)
     lmd2 = s - lmd1
@@ -275,7 +271,7 @@ def dec(c,pk,sk):
     m = np.array(m).reshape(c.shape[0],c.shape[1])
     return m
 
-def V_correctness_Ci(plain_C,g__wj,h__xijyi):#批量验证
+def V_correctness_Ci(plain_C,g__wj,h__xijyi):#batch verification
     q_list = np.random.randint(1, 10, size=plain_C.shape[1])# p -> inf
     e1 = 1
     sum = 0
@@ -294,7 +290,7 @@ def V_correctness_Ci(plain_C,g__wj,h__xijyi):#批量验证
         eba = eba * pairing.apply(g__wj[j],h__q_xijyi[j])
     return pairing.apply(e1, h)==eba
 
-def V_correctness_Ci_V1(plain_C,g__wj,h__xijyi):#非批量验证
+def V_correctness_Ci_V1(plain_C,g__wj,h__xijyi):#normal verification
     ver_list = []
     for i in range(plain_C.shape[1]):
         e1 = pairing.apply(g ** int(plain_C[0][i]), h)#heart (0,237)
@@ -305,50 +301,52 @@ def V_correctness_Ci_V1(plain_C,g__wj,h__xijyi):#非批量验证
         ver_list.append( temp_first == e1)
     return all(ver_list)
 
-# print('双线性 累乘验证',pairing.apply(g**2,h**2),pairing.apply(g,h)*pairing.apply(g,h))
+# print('Bilinear pairing-based accumulative verification',pairing.apply(g**2,h**2),pairing.apply(g,h)*pairing.apply(g,h))
 
 #***********************************************************************************************************************
 time_start = time.perf_counter()
-# #获取初始数据
-#X_train, X_test, y_train, y_test = get_iris_data()#鸢尾花
-#X_train, X_test, y_train, y_test = get_heart_data()#心脏病
-#X_train, X_test, y_train, y_test = get_breast_data()#乳腺癌
-#X_train, X_test, y_train, y_test = get_Ionosphere_data()#离子
+
+#Get initial data
+#X_train, X_test, y_train, y_test = get_iris_data() # Iris
+#X_train, X_test, y_train, y_test = get_heart_data() # Heart disease
+#X_train, X_test, y_train, y_test = get_breast_data() # Breast cancer
+#X_train, X_test, y_train, y_test = get_Ionosphere_data() # Ionosphere
 X_train, X_test, y_train, y_test = get_minist_data()#minist
 
 '''Initialization_Step1_TTP'''
 # #Key_Gen
-pk, sk = keygen()#sk 随机性的问题
+pk, sk = keygen()#sk randomness
 lmd1, lmd2 = secrekeySplit(pk,sk)
 PK = pk[1]
 N = pk[0]
 
 #***********************************************************************************************************************
-#构建双线性映射 pypbc
-# #根据安全参数进行实例化 https://www.freesion.com/article/19881431966/
+#Construct bilinear mapping pypbc
+# Instantiate based on security parameters. https://www.freesion.com/article/19881431966/
 # qbits=512
 # rbits=160
-# params = Parameters(qbits=qbits, rbits=rbits)   #参数初始化  应选择a类曲线以保证G1 X G1 = G2
+# params = Parameters(qbits=qbits, rbits=rbits)   #Parameter initialization should choose type-A curves to ensure that G1 X G1 = G2.
 
-#根据设置群的阶数来生成曲线
-q_1 = get_random_prime(20)  # 生成一个长度为30的随机素数
+
+#Generate curves based on the set order of the group.
+q_1 = get_random_prime(20) # Generate a random prime number of length 20
 q_2 = get_random_prime(20)
 p = q_1 * q_2 # k
-#使用的是pbc中的a1_param参数
-params = Parameters( n=p )
-pairing = Pairing(params)  # 根据参数实例化 双线性对
-#从群中取一个随机数，并初始化一个元素，一般是取g的，也就是生成元。
-g = Element.random(pairing, G1)  # g h 是G1的一个生成元
-h = Element.random(pairing, G1)  #type(G1):<class 'int'>
+#Use the a1_param parameter in pbc.
+params = Parameters(n=p)
+pairing = Pairing(params) # Instantiate bilinear pairing based on the parameters.
+#Take a random number from the group and initialize an element, usually g, which is a generator of G1.
+g = Element.random(pairing, G1) # g and h are generators of G1
+h = Element.random(pairing, G1) # type(G1): <class 'int'>
 
-# '''双线性对运算如下:# e(g,g)
-#e = pairing.apply(g,g)
-#
-# 对群进行运算一般使用Element，而不是直接在数值上进行运算。（当然直接运算也可以）。
-# 其中pairing代表我们初始化的双线性对，G2代表返回值的类型，value=就是值等于多少，G2中的元素做底数，Zr中的元素做指数，
-# 其实也能使用b = g ** c是同样的效果，但下面这样写更加工整，看着更明白，减少出错。
-# b = Element( pairing, G2, value = g ** c )   # b = g^c
-# '''
+
+#Bilinear pairing operation as follows: #e(g, g)
+#e = pairing.apply(g, g)
+#Generally, group operations are performed using Element rather than direct numerical operations. (Of course, direct operations are also possible.)
+#Here, "pairing" represents the bilinear pairing initialized, G2 represents the return value type, "value" represents the value of the element, G2 elements act as the base, and Zr elements act as the exponent.
+#Actually, using b = g ** c gives the same effect, but writing it in the following way is neater and clearer, reducing errors.
+#b = Element(pairing, G2, value=g ** c) # b = g^c
+
 #global gp
 gp = [pairing,p,G1,G2,g,h]
 #***********************************************************************************************************************
@@ -375,31 +373,31 @@ MR_a,MR_pk = model_request_init(gp)
 #***********************************************************************************************************************
 '''Data Submission_Step1:Model_Request'''
 MR_DS_start = time.perf_counter()
-#随机初始化权重
+#Randomly initialize weights
 #print(np.random.normal(loc=0, scale=0.01, size=(5,2)).astype(np.float64))
 #W = np.random.randn(len(X_train[0]))#  [round(x) for x in np.random.normal(0,2,4)]
 np.random.seed(1)
 W = np.random.normal( loc=0, scale=0.01, size=(len(X_train[0]),) ).astype(np.float64)
-#W = np.array([1,1,1,1,1]).astype(np.float64)#给定固定值
+#W = np.array([1,1,1,1,1]).astype(np.float64)# Given a fixed value
 W[-1]=np.float64(1.0)
 omega = np.sum(W)
 #print('omega',omega)
-#W=W*(10**8))#f放大取整
+#W=W*(10**8))#Amplify and round up
 
-#随机初始化扰动值
+#Randomly initialize perturbation values
 r = np.random.normal(loc=0, scale=0.01, size=(len(X_train[0]),)).astype(np.float64)
 r[-1]=np.float64(0)
 #r = r*(10**8)
-#r=[round(i) for i in r]#取整
+#r=[round(i) for i in r]#
 
-#添加扰动值
+#add perturbation values
 Wb =  np.sum([W, r], axis=0)
 
-K_list = np.random.randint(0,p,size=(2,len(X_train[0])))#Zp范围内？****************************    h?
+K_list = np.random.randint(0,p,size=(2,len(X_train[0])))#range of Zp？****************************    h?
 K1,K2= K_list[0].astype(int),K_list[1].astype(int)
 K3 = np.random.randint(0,p,size=(1))
 
-#print('验证双线性映射', pairing.apply(g ** K1, h ** K2)== pairing.apply(g, h) ** (K1 * K2))#!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#print('Verify the bilinear mapping.', pairing.apply(g ** K1, h ** K2)== pairing.apply(g, h) ** (K1 * K2))#!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 U_wj = [ (gp[-1]**int(x)) for x in K1]#h  list
 U_rj = [gp[-1]**int(x) for x in K2]
 U_W = [gp[-1]**int(K3[0])]# omega list
@@ -407,22 +405,22 @@ U_W = [gp[-1]**int(K3[0])]# omega list
 #tag
 # print(MR_a,int(MR_a),Wb[0],K1,p)
 # print(type(MR_a),type(Wb[0]),type(K1),type(p))
-emc_wj = [(int(MR_a)*(Wb[j]+K1[j]))%p for j in range(len(Wb))]   #print(1**0x11095A059DA86A==1**8908973441865092) true(作为指数计算时十六进制和十进制无区别)
+emc_wj = [(int(MR_a)*(Wb[j]+K1[j]))%p for j in range(len(Wb))]   #print(1**0x11095A059DA86A==1**8908973441865092) true(As hexadecimal and decimal representations are equivalent when used as exponents.)
 #omg = [w**2 for w in W]
 #emc_W = [(int(MR_a)*(omg[j]+K2[j]))%p for j in range(len(omg))]#
 emc_rj = [(int(MR_a)*(r[j]+K2[j]))%p for j in range(len(r))]#
 emc_W  = [(int(MR_a)*(omega+K3[0]))%p ]
 
 # the model requester : helper values
-g__wj = [gp[4]**int(wj*10**6) for wj in W]#   W*10**6   实际放大应到10**8
-h__arai = [(gp[5]**(MR_a))**(DO_ai**(-1)) for DO_ai in DO_a]#注意数据类型，是否会损失精度
+g__wj = [gp[4]**int(wj*10**6) for wj in W]#   W*10**6   actually should be 10**8
+h__arai = [(gp[5]**(MR_a))**(DO_ai**(-1)) for DO_ai in DO_a]#Pay attention to the data type, whether it will cause precision loss
 # the model requester : encrypts the model weights
 Wb = np.array(Wb).reshape(Wb.shape[0],1)#8->int
-c_Wb = enc(Wb*(10**6), pk)#为便于计算书写，可列表转换为数组类型  shape(5,1)
+c_Wb = enc(Wb*(10**6), pk)#For ease of calculation and writing, the list can be converted to an array type.  shape(5,1)
 
 #send:MR_SA
 MR_TO_SA=[ (g__wj,Wb,(U_wj,emc_wj)) , (U_rj,emc_rj) , h__arai , (U_W,emc_W) ]
-#未完全按照文中顺序
+#Not arranged in the exact order as in the article.
 #send:MR_SB
 MR_TO_SB=[( g__wj , r , (U_rj,emc_rj) , (U_wj,emc_wj) , c_Wb ),h__arai]
 #***********************************************************************************************************************
@@ -430,7 +428,7 @@ MR_DS_end = time.perf_counter()
 
 '''Data Submission_Step2:Data owner'''
 DO_DS_start = time.perf_counter()
-#extends his/her training data，在数据初始化时（数据划分前）已进行该操作
+#extends his/her training data，This operation has been performed during data initialization (before data partitioning).
 
 # multiplies the training data with its corresponding lables
 xi_yi=np.array([X_train[i]*y_train[i] for i in range(len(y_train))])
@@ -447,8 +445,8 @@ for x in range(c_xi_yi.shape[0]):
     for y in range(c_xi_yi.shape[1]):
         kij = int(Element.random(pairing,Zr))#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         k_ij.append(kij)
-        u.append(gp[5] ** kij)  # **************************数据类型element int
-        emc.append((int(DO_a[x]) * (xi_yi[x][y] + kij)) % p)#先将 DO_a[x] （从Zp中选出的）十六进制转十进制
+        u.append(gp[5] ** kij)  # **************************data type:element int
+        emc.append((int(DO_a[x]) * (xi_yi[x][y] + kij)) % p)#Convert DO_a[x] (selected from Zp) from hexadecimal to decimal first
     U_xij_yi.append(u)
     emc_xij_yi.append(emc)
 
@@ -465,16 +463,16 @@ c_rj__xijyi = []
 for i in range(len(xi_yi)):#j
     c=[]
     for j in range(len(c_rj)):#type(c_rj[j][0]),type(-xi_yi[i][j])  <class 'int'> <class 'numpy.float64'>
-        #c.append(c_rj[j][0]**int(-xi_yi[i][j]*10**1))#直接 指数运算 数据过大溢出报错OverflowError: int too large to convert to float
+        #c.append(c_rj[j][0]**int(-xi_yi[i][j]*10**1))#Direct exponentiation causes overflow error when the data is too large.  :  OverflowError: int too large to convert to float
         c.append(gmpy2.powmod(c_rj[j][0], int(-1 * xi_yi[i][j] * (10 ** 6)), N ** 2) % (N ** 2))
         #decimal?  https://blog.csdn.net/qq_36963214/article/details/108190232
     c_rj__xijyi.append(c)
 
-h__xijyi = []#嵌套列表
+h__xijyi = []#Nested List
 for i in range(xi_yi.shape[0]) :#j
     h1 = []
     for j in range (xi_yi.shape[1]):
-        h1.append(gp[5]**int(xi_yi[i][j]*10**6))#如果底数是十六进制，指数是10进制，会？       10**2
+        h1.append(gp[5]**int(xi_yi[i][j]*10**6))
     h__xijyi.append(h1)
 
 # print('h__xijyi',h__xijyi[0][0]*h__xijyi[0][1]*h__xijyi[0][2]*h__xijyi[0][1]*h__xijyi[0][1],h__xijyi[0][0],h__xijyi[0][0]**int(q_list[0])*h__xijyi[0][0]**int(q_list[0]),q_list[0])
@@ -486,13 +484,13 @@ DO_TO_SA = ( c_xi_yi, h__xijyi , RO_xij_yi ,c_rj__xijyi )#array list (list,list)
 DO_TO_SB = (h__xijyi , RO_xij_yi)
 DO_DS_end = time.perf_counter()
 
-plain_Wb1 = Wb #仅作为flag
+plain_Wb1 = Wb #as a flag
 
-#训练相关参数
+#Training related parameter
 emcn = 0.001  # a
-lr = 0.02  # 学习率
-thr = 0.01  # 阈值
-T = 100  # 轮次 epoch
+lr = 0.02  # learning rate
+thr = 0.01  # threshold
+T = 100  # epoch
 t = 0
 cost0 = 0
 cost = 0
@@ -517,7 +515,7 @@ while(t<T):# np.abs(cost-cost0)>thr or
         C.append(Ci1*Ci2)
     C = np.array(C).reshape((1, c_xi_yi.shape[0]))#79
 
-    Partial_C_1 = partialdec(pk, lmd1, C)#部分解密
+    Partial_C_1 = partialdec(pk, lmd1, C)#Partial decryption
     SA_to_SB = (C,Partial_C_1)
 
     SA1_end = time.perf_counter()#!!!
@@ -527,7 +525,7 @@ while(t<T):# np.abs(cost-cost0)>thr or
     Partial_C_2 = partialdec(pk, lmd2, C) #(1,79)
     plain_C = partialcombine(pk, Partial_C_1, Partial_C_2) / 10**12
     plain_C = plain_C.astype(np.float64)
-    # #非常规验证 *************************************************************
+    # #verification *************************************************************
     real = (xi_yi*10**6).dot(Wb*10**6)/10**12
     #print(Wb,real.shape,real)
     #print('real',real.reshape(real.shape[0],))#针对负数加解密的问题
