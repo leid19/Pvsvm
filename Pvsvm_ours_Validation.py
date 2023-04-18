@@ -527,19 +527,16 @@ while(t<T):# np.abs(cost-cost0)>thr or
     plain_C = plain_C.astype(np.float64)
     # #verification *************************************************************
     real = (xi_yi*10**6).dot(Wb*10**6)/10**12
-    #print(Wb,real.shape,real)
-    #print('real',real.reshape(real.shape[0],))#针对负数加解密的问题
     Flag = np.array([2*int(x>0)-1 for x in real])
-    #print('解密后真实数字（有精度损失）',plain_C * Flag)#加解密时将将负数作为正数处理，最后统一添加符号
     plain_C = plain_C * Flag
-    #the verification formula of ci
-    verify_Ci=V_correctness_Ci(plain_C,g__wj,h__xijyi)#g__wj 放大了 10**6  h__xijyi 中 int(xi_yi[i][j]*10**6)  plain N**
-    #verify_Ci = V_correctness_Ci_V1(plain_C, g__wj, h__xijyi) #不采用批量验证
-    #print('Ci验证结果：',verify_Ci)
-
-    #验证成功：
+    # the verification formula of ci
+    verify_Ci=V_correctness_Ci(plain_C,g__wj,h__xijyi)#g__wj is amplified by 106, h__xijyi contains int(xi_yi[i][j]*106) plain N**
+    #verify_Ci = V_correctness_Ci_V1(plain_C, g__wj, h__xijyi) # do not use batch verification
+    #print('Ci verification result:',verify_Ci)
+    
+    #success：
     S = 0
-    s = []#空集
+    s = []#Empty set
 
     for i in range(len(plain_C[0])):
         if(plain_C[0][i]<1):
@@ -547,10 +544,10 @@ while(t<T):# np.abs(cost-cost0)>thr or
             S += 1 - plain_C[0][i]#plain_C  shape  (1,79)
     s_sum = s_sum + len(s)
     #print('s,S',s,S)
-    #计算密文下的梯度 Cj   针对s
+    #Calculate the gradient Cj under ciphertext for s.
     c_xjy = []
     for j in range(c_xi_yi.shape[1]):#gmpy2.powmod(c_rj[j][0], int(-1 * xi_yi[i][j] * (10 ** 6)), N ** 2) % (N** 2)
-        temp = gmpy2.powmod(c_xi_yi[s[0]][j], int(-1 * (emcn * 10 ** 6)), N ** 2)   #按理说本应当指数为负数
+        temp = gmpy2.powmod(c_xi_yi[s[0]][j], int(-1 * (emcn * 10 ** 6)), N ** 2)   
         for i in s[1:]:
             temp = temp * gmpy2.powmod( c_xi_yi[i][j], int(-1*(emcn * 10 ** 6)), N ** 2) % (N** 2) #(c_xi_yi[i][j]**(-emcn*10**6))
         c_xjy.append(temp)
@@ -563,49 +560,44 @@ while(t<T):# np.abs(cost-cost0)>thr or
     Cj = np.array(Cj).reshape(1,len(Cj))
     #Cj = Cj**(1*10**(-6)) % N**2
 
-    #密文下更新W
+    #Update W in ciphertext
     #c_Wb = enc(Wb*(10**6), pk)
     c_wb1 = []
     for j in range(Cj.shape[1]):#?????????????????????????????
-        #c_wb1.append(c_Wb[j][0] *( Cj[j]**(-1))) # 前后密文 放大倍数不一样
-        if( plain_Wb1[j]<0):#当被减数为负数时
+        #c_wb1.append(c_Wb[j][0] *( Cj[j]**(-1))) 
+        if( plain_Wb1[j]<0):#When the minus number is negative
             #print('case2',pdec(np.array(gmpy2.powmod(c_Wb[j][0],1*10**6,N**2)).reshape(1,1),lmd1,lmd2,pk))
             c_wb1.append(gmpy2.powmod(c_Wb[j][0], int(-1 * 10 ** 6), N ** 2) * (gmpy2.powmod(Cj[0][j], -1, N ** 2)))
         elif(pdec(np.array(gmpy2.powmod(c_Wb[j][0],1*10**6,N**2)).reshape(1,1),lmd1,lmd2,pk) < pdec(np.array(gmpy2.powmod(Cj[0][j],-1,N**2)).reshape(1,1),lmd1,lmd2,pk)): #权重由正转为负
             #print('case1',pdec(np.array(gmpy2.powmod(c_Wb[j][0],1*10**6,N**2)).reshape(1,1),lmd1,lmd2,pk),pdec(np.array(gmpy2.powmod(Cj[0][j],-1,N**2)).reshape(1,1),lmd1,lmd2,pk))#被减数和减数为正，被减数小于减数
             c_wb1.append(gmpy2.powmod(c_Wb[j][0], int(-1 * 10 ** 6), N ** 2) * (gmpy2.powmod(Cj[0][j], -1, N ** 2)))
-        else:#3 1,直接相减
+        else:#3 1,Direct subtraction
             #print('case3')
             c_wb1.append( gmpy2.powmod(c_Wb[j][0],int(1*10**6),N**2) * (gmpy2.powmod(Cj[0][j] ,1,N**2)))#!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     c_Wb1 = np.array(c_wb1).reshape(c_Wb.shape[0],c_Wb.shape[1])
     #print('c_wb1',c_wb1)
-    #计算明文下的权重更新结果进行验证-----------------************************************************************************
+    #Validate the weight update results under plaintext.-----------------************************************************************************
     G = (emcn * Wb).reshape(Wb.shape[0],) - emcn * (r.reshape(r.shape[0],))
-    #print('初始梯度 emcn * Wb',G)
     for i in s:
         G = G - y_train[i] * X_train[i]
-    # print('更新后G',G)
-    # print('lr * G',lr * G)#这一步没有问题
 
-    c_xjy = np.array(c_xjy).reshape(len(Wb),1)# 权重长度
+    c_xjy = np.array(c_xjy).reshape(len(Wb),1)#  length of weight
     Partial_c_xjy1 = partialdec(pk,lmd1,c_xjy)
     Partial_c_xjy2 = partialdec(pk,lmd2,c_xjy)
     plain_c_xjy = partialcombine(pk,Partial_c_xjy1,Partial_c_xjy2)/(10**12)
     plain_c_xjy = plain_c_xjy.astype(np.float64)
-    #print('解密 验证G:plain_c_xjy',plain_c_xjy)#************************************
-
+    
     plain_Wb1 = Wb.reshape(Wb.shape[0],) - r.reshape(r.shape[0],) - lr * G
-    #plain_Wb1 = Wb.reshape(Wb.shape[0], )  - lr * G
-    #print('明文下的权重更新结果',plain_Wb1)
+
     Flag_wb = np.array([2 * int(x > 0) - 1 for x in plain_Wb1])
     # -----------------*******************************************************************************
-    #计算cost
+    #calculate cost
     cost=0
-#   cost = cost + S + 0.5*emcn*np.linalg.norm(Wb,ord=2)# 求向量模长  默认2范式       暂时用 经扰动后的模型权重
+#   cost = cost + S + 0.5*emcn*np.linalg.norm(Wb,ord=2)#  Calculate the magnitude of the vector, default 2-norm.
     cost = cost + S + 0.5 * emcn * ((Wb.T).dot(Wb))
 
-    # SB 部分解密
-    Partial_Cj_2 = partialdec(pk, lmd2, Cj)#部分解密
+    # SB Partial decryption
+    Partial_Cj_2 = partialdec(pk, lmd2, Cj)#Partial decryption
     Partial_c_Wb_2 = partialdec(pk, lmd2, c_Wb1)
 
     SB_TO_SA = [ plain_C, (Cj,Partial_Cj_2), (c_Wb1,Partial_c_Wb_2)] #
@@ -616,45 +608,43 @@ while(t<T):# np.abs(cost-cost0)>thr or
     # SA !!!!!!!!!
     #verify_Ci_2=V_correctness_Ci(SB_TO_SA[0],g__wj,h__xijyi)
     verify_Ci_2 = V_correctness_Ci_V1(SB_TO_SA[0],g__wj,h__xijyi)
-    # print('Ci_2验证结果：',verify_Ci_2)
+    # print('verification result of Ci_2：',verify_Ci_2)
     S2 = 0
-    s2 = []#空集
+    s2 = []#empty set
     for i in range(len(plain_C[0])):
         if(plain_C[0][i]<1):
             s2.append(i)
             S2 += 1 - plain_C[0][i]
     #print('s2',s2) 空
-    #计算cost
+    #cost
     cost_SA=0
-    cost_SA = cost_SA + S2 + 0.5*emcn*np.linalg.norm(Wb,ord=2)# 求向量模长  默认2范式       暂时用 经扰动后的模型权重
+    cost_SA = cost_SA + S2 + 0.5*emcn*np.linalg.norm(Wb,ord=2)#Calculate the magnitude of the vector, default 2-norm.
 
-    #解密
+    #Decryption
     Partial_Cj_1 = partialdec(pk, lmd1, Cj)
     Partial_Cj = partialcombine(pk, Partial_Cj_1, Partial_Cj_2) / (10 ** 12)
     Partial_Cj = Partial_Cj.astype(np.float64)
-    #print('解密Partial_Cj + r',Partial_Cj,r)  #真实更新
+    
 
     Partial_c_Wb_1 = partialdec(pk, lmd1, c_Wb1)
     Partial_c_Wb = partialcombine(pk, Partial_c_Wb_1, Partial_c_Wb_2) / (10 ** 12)
     Partial_c_Wb = Partial_c_Wb.astype(np.float64)
-    #print('初始权重wb',Wb)
-    Wb = Partial_c_Wb.reshape(Partial_c_Wb.shape[0],) * Flag_wb #添加符号
+
+    Wb = Partial_c_Wb.reshape(Partial_c_Wb.shape[0],) * Flag_wb #Add symbol
     Wb = Wb.reshape(Partial_c_Wb.shape[0],1)
-    #print('明文下的权重更新结果', plain_Wb1)
-    #print('解密_更新后Wb1',Wb)  # ***************************************************************************************
-    #print('dec',pdec(c_Wb1,lmd1,lmd2,pk))
+
     print('end : ',t)
     Wb = np.array(plain_Wb1 + r.reshape(r.shape[0],)).reshape(len(plain_Wb1),1)
-    #验证 计算tag $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+    #verification: calculate tag $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
     #(1)cj  MR_TO_SA  DO_TO_SA
     lc_emc_xij_yi = []#U_xij_yi,emc_xij_yi
     for j in range(len(U_xij_yi[0])) :
         #temp = emc_xij_yi[s2[0]][j] % N**2
-        temp = U_xij_yi[0][j]**int(-lr*10**6) #% N ** 2#因为S2暂时为空
+        temp = U_xij_yi[0][j]**int(-lr*10**6) #% N ** 2
         for i in range(1,len(U_xij_yi)):
         #for i in s2[1:]:
-            temp = temp * U_xij_yi[i][j]**int(-lr*10**6) #% N**2) #  inf 计算溢出
+            temp = temp * U_xij_yi[i][j]**int(-lr*10**6) #% N**2) #  inf Computation overflow
         lc_emc_xij_yi.append(temp)
     #lc_emc_xij_yi = np.array(lc_emc_xij_yi)
     #print('lc_emc_xij_yi',lc_emc_xij_yi,len(lc_emc_xij_yi))
@@ -664,14 +654,14 @@ while(t<T):# np.abs(cost-cost0)>thr or
         u_cj.append((U_wj[j]**int(lr*emcn*10**6)) * (U_rj[j] **int(-lr*emcn*10**6)) * lc_emc_xij_yi[j])#020019FA460B84 1 020019FA460B84 1.0765643415944357e+906
     #print('u_cj',u_cj)
 
-    #h__arai 待修正
+    #h__arai  :To be corrected
     lc_h_arai = []
     for j in range(len(emc_xij_yi[0])) :
         #temp = emc_xij_yi[s2[0]][j] % N**2
-        temp = h__arai[0]** int(-lr * emc_xij_yi[0][j] *10**6 ) #因为S2暂时为空  放大10**6
+        temp = h__arai[0]** int(-lr * emc_xij_yi[0][j] *10**6 ) #10**6
         for i in range(1,len(emc_xij_yi)):
         #for i in s2[1:]:
-            temp = temp * (h__arai[i] ** int(-lr * emc_xij_yi[i][j] *10**6 ))#小数  -15411353.18
+            temp = temp * (h__arai[i] ** int(-lr * emc_xij_yi[i][j] *10**6 ))#decimal  -15411353.18
         lc_h_arai.append(temp)
     emc_cj = []
     for j in range(len(U_rj)):#5
@@ -681,14 +671,14 @@ while(t<T):# np.abs(cost-cost0)>thr or
     #wjt
     u_wjt = []
     for j in range(len(u_cj)):
-        u_wjt.append(Element.__ifloordiv__(U_wj[j],u_cj[j])) #除法 用法
+        u_wjt.append(Element.__ifloordiv__(U_wj[j],u_cj[j])) #Division
     emc_wjt = []
     for j in range(len(U_rj)):#5
         emc_wjt.append(Element.__ifloordiv__(h**int(emc_wj[j]) ,emc_cj[j]))#  202971239619.0  ->  202971239619
     #print('emc_wjt',emc_wjt)
 
     #cost
-    u_cost = (U_W[0] ** int(0.5* emcn * int(K3[0]) ))#U_W,emc_W  放大10**6
+    u_cost = (U_W[0] ** int(0.5* emcn * int(K3[0]) ))#U_W,emc_W  Magnification：10**6
     #emc_cost = []
     #emc_cost = ( h**(int(int(MR_a)*(cost+S2)))  *  h**(int(0.5 * emcn * emc_W[0])) )
     print(int(0.5 * emcn * emc_W[0]))
@@ -700,7 +690,7 @@ while(t<T):# np.abs(cost-cost0)>thr or
     Ro_wjt = (u_wjt,emc_wjt)
     Ro_cost = (u_cost,emc_cost)
     #print('Ro_cost',Ro_cost)
-    #验证 the verification formula of cj wjt cost
+    # the verification formula of cj wjt cost
     #Cj
     verify_Cj = []
     for j in range(len(u_cj)):
@@ -710,13 +700,13 @@ while(t<T):# np.abs(cost-cost0)>thr or
     for j in range(len(u_cj)):
         verify_Wj.append(pairing.apply(g,emc_wjt[j]) == pairing.apply(g**(int(MR_a)),u_wjt[j]*h**int(plain_Wb1[j])))
     #cost
-    verify_cost = (pairing.apply(g,emc_cost) == pairing.apply(g**(int(MR_a)),u_cost*h**int(cost)))#取整？
+    verify_cost = (pairing.apply(g,emc_cost) == pairing.apply(g**(int(MR_a)),u_cost*h**int(cost)))
 
-    #验证成功：SA updates
+    #success：SA updates
     for j in range(len(Partial_Cj[0])):
         g__wj[j] = g__wj[j] * (g**int(Partial_Cj[0][j]))
 
-    #omega = np.sum(W) #更新
+    #omega = np.sum(W) #update
     SA2_end = time.perf_counter()  # !!!
     SA_time = SA_time + (SA2_end - SB1_end)  # !!!
     '''5.4 Privacy-preserving and Verifiable Training Protocol:step4'''
@@ -734,10 +724,10 @@ while(t<T):# np.abs(cost-cost0)>thr or
     lc_emc_xij_yi = []  # U_xij_yi,emc_xij_yi
     for j in range(len(U_xij_yi[0])):
         # temp = emc_xij_yi[s2[0]][j] % N**2
-        temp = U_xij_yi[0][j] ** int(-lr * 10 ** 6)  # % N ** 2#因为S2暂时为空
+        temp = U_xij_yi[0][j] ** int(-lr * 10 ** 6)  # % N ** 2#
         for i in range(1, len(U_xij_yi)):
             # for i in s2[1:]:
-            temp = temp * U_xij_yi[i][j] ** int(-lr * 10 ** 6)  # % N**2) #  inf 计算溢出
+            temp = temp * U_xij_yi[i][j] ** int(-lr * 10 ** 6)  # % N**2) #  inf overflow
         lc_emc_xij_yi.append(temp)
     # lc_emc_xij_yi = np.array(lc_emc_xij_yi)
     # print('lc_emc_xij_yi',lc_emc_xij_yi,len(lc_emc_xij_yi))
@@ -748,14 +738,14 @@ while(t<T):# np.abs(cost-cost0)>thr or
             j])  # 020019FA460B84 1 020019FA460B84 1.0765643415944357e+906
     # print('u_cj',u_cj)
 
-    # h__arai 待修正
+    # h__arai 
     lc_h_arai = []
     for j in range(len(emc_xij_yi[0])):
         # temp = emc_xij_yi[s2[0]][j] % N**2
-        temp = h__arai[0] ** int(-lr * emc_xij_yi[0][j] * 10 ** 6)  # 因为S2暂时为空  放大10**6
+        temp = h__arai[0] ** int(-lr * emc_xij_yi[0][j] * 10 ** 6)  
         for i in range(1, len(emc_xij_yi)):
             # for i in s2[1:]:
-            temp = temp * (h__arai[i] ** int(-lr * emc_xij_yi[i][j] * 10 ** 6))  # 小数  -15411353.18
+            temp = temp * (h__arai[i] ** int(-lr * emc_xij_yi[i][j] * 10 ** 6)) 
         lc_h_arai.append(temp)
     emc_cj = []
     for j in range(len(U_rj)):  # 5
@@ -766,7 +756,7 @@ while(t<T):# np.abs(cost-cost0)>thr or
     # wjt
     u_wjt = []
     for j in range(len(u_cj)):
-        u_wjt.append(Element.__ifloordiv__(U_wj[j], u_cj[j]))  # 除法 用法
+        u_wjt.append(Element.__ifloordiv__(U_wj[j], u_cj[j]))  # division
     emc_wjt = []
     for j in range(len(U_rj)):  # 5
         emc_wjt.append(Element.__ifloordiv__(h ** int(emc_wj[j]), emc_cj[j]))  # 202971239619.0  ->  202971239619
@@ -774,27 +764,25 @@ while(t<T):# np.abs(cost-cost0)>thr or
 
     Ro_cj2 = (u_cj, emc_cj)
     Ro_wjt2 = (u_wjt, emc_wjt)
-    # 验证成功：SB updates
+    # success：SB updates
     for j in range(len(Partial_Cj[0])):
-        g__wj[j] = g__wj[j] * (g ** int(Partial_Cj[0][j]))#该步骤仅用来计算时间
+        g__wj[j] = g__wj[j] * (g ** int(Partial_Cj[0][j]))#time
 
     SB2_end = time.perf_counter()  # !!!
     SB_time = SB_time + (SB2_end - SA2_end)  # !!!
 
-    # # print('最终wjt验证结果：',verify_wjt)
+   
     c_Wb = enc(Wb*(10**6), pk)
     t += 1
 '''The end'''
 time_end = time.perf_counter()
 print("time cost %f:" % (time_end-time_start))
 
-#预测效果验证：
+#Prediction effect verification：
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score, accuracy_score
-w = plain_Wb1#明文下的计算结果
+w = plain_Wb1
 w1 = plain_Wb1.reshape(r.shape[0],) - r.reshape(r.shape[0],)
-#print('plain_Wb1 - r',plain_Wb1,r.reshape(r.shape[0],))
-#w = Wb#负数更新存在问题
-#predict_y = list((X_test).dot(w.T))
+
 predict_y = list((X_test).dot(w.reshape(r.shape[0],).T))
 predict_y1 = list((X_test).dot(w1.T))
 #print('predict_y1',predict_y1)
@@ -803,34 +791,34 @@ for x in  range(len(predict_y)):
         predict_y[x] = 1
     else:
         predict_y[x]=0
-test_predictions = predict_y#预测 标签
+test_predictions = predict_y#prediction: label
 
 for x in  range(len(predict_y1)):
     if(predict_y1[x] >= 1):
         predict_y1[x] = 1
     else:
         predict_y1[x]=0
-test_predictions1 = predict_y1#预测 标签
+test_predictions1 = predict_y1#prediction: label
 
 y_true = list(y_test)
-#print('真实值',y_true)
-#print('预测值',test_predictions)
+#print('true value',y_true)
+#print('prediction',test_predictions)
 acc = accuracy_score(y_true,test_predictions)
 recall = recall_score(y_true,test_predictions,average='macro')
 precision = precision_score(y_true,test_predictions,average='macro')
 f1 = f1_score(y_true,test_predictions,average='macro')
 #print('macro -> accuracy: %.4f recall: %.4f precision:%.4f f1: %.4f'%(acc,recall,precision,f1))
 
-#扰动值
+#Disturbance value
 acc = accuracy_score(y_true,test_predictions1)
 recall = recall_score(y_true,test_predictions1,average='macro')
 precision = precision_score(y_true,test_predictions1,average='macro')
 f1 = f1_score(y_true,test_predictions1,average='macro')
-print('扰动后macro -> accuracy: %.4f recall: %.4f precision:%.4f f1: %.4f'%(acc,recall,precision,f1))
+print('Disturbance：macro -> accuracy: %.4f recall: %.4f precision:%.4f f1: %.4f'%(acc,recall,precision,f1))
 #print('s_sum',s_sum)
 
-print("MR 数据上传时间 time cost %f:" % (- MR_DS_start + MR_DS_end))
-print("DO 数据上传时间 time cost %f:" % (- DO_DS_start + DO_DS_end))
+print("MR data submission time cost %f:" % (- MR_DS_start + MR_DS_end))
+print("DO data submission time cost %f:" % (- DO_DS_start + DO_DS_end))
 
-print("Cloud A 时间 time cost %f:" % SA_time)
-print("Cloud B 时间 time cost %f:" % SB_time)
+print("Cloud A  time cost %f:" % SA_time)
+print("Cloud B  time cost %f:" % SB_time)
