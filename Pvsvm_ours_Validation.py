@@ -17,45 +17,45 @@ from keras.datasets import mnist
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score, accuracy_score
 
 def get_minist_data():
-    # 数据加载
+    # data load
     (train_images, train_labels), (test_images, test_labels) = mnist.load_data()
     train_image01 = train_images[np.where(train_labels <= 1)[0]]
     train_label01 = train_labels[np.where(train_labels <= 1)[0]]
 
     train_image01_flat = train_image01.reshape(train_image01.shape[0], 784)
-    print('样本数', train_image01.shape[0])
-    # PCA降维
-    # 创建一个模型叫 model
+    print('Sample number', train_image01.shape[0])
+    # PCA dimension reduction
+    # Create a model
     pca = PCA(n_components=20)  # n_components
     # #train_image01_flat.shape
     reduced_train_image01_flat = pca.fit_transform(train_image01_flat)
     print(reduced_train_image01_flat[0])
     one = np.zeros(len(reduced_train_image01_flat)) + 1
-    reduced_train_image01_flat = np.column_stack((reduced_train_image01_flat, one))  # 扩展维度
+    reduced_train_image01_flat = np.column_stack((reduced_train_image01_flat, one))  # Extended dimension
     print(reduced_train_image01_flat[0])
-    # 划分训练集测试集
+    # Divide the train set and test set
     X_train, X_test, y_train, y_test = train_test_split(reduced_train_image01_flat, train_label01, test_size=0.3,
                                                         shuffle=True, random_state=3)
-    # #获取初始数据
+    # 
     X_train = X_train.astype(np.float64)
     y_train = y_train.astype(np.int64)
     X_test = X_test.astype(np.float64)
     y_test = y_test.astype(np.int64)
     return  X_train, X_test, y_train, y_test
 
-def get_iris_data():# 加载iris数据集
+def get_iris_data():# Load the iris dataset
     iris = datasets.load_iris()
-    # iris.data大小为150*4,代表4种特征，这里可以只提取后两类特征 x = iris.data[:, [2, 3]]
+    #The size of iris.data is 150*4, representing 4 features. Here, we can only choose the last two types of features x = iris.data[:, [2, 3]]
     x = iris.data
     y = iris.target
     first_id = list(y).index(2)
-    #x = np.trunc(x[:first_id - 1])#取整
-    x = x[:first_id - 1]  # 取整
+    #x = np.trunc(x[:first_id - 1])# round
+    x = x[:first_id - 1]  
     one = np.zeros(len(x))+1
-    x = np.column_stack((x,one))#扩展维度
+    x = np.column_stack((x,one))#Extended dimension
     #print(x, type(x))
-    y = y[:first_id - 1]#观察数据，选择label：0，1
-    y = -(y*(-2)+1)#将label:0转换为label:1
+    y = y[:first_id - 1]#observe data and choose label：0，1
+    y = -(y*(-2)+1)#translate label:0 to label:-1
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, shuffle=True, random_state=2)
     x_train = x_train.astype(np.float64)
     y_train = y_train.astype(np.int64)
@@ -64,7 +64,7 @@ def get_iris_data():# 加载iris数据集
     return  x_train, x_test, y_train, y_test
 
 def get_heart_data():
-    # 导入数据
+    # data loader
     df = pd.read_csv('UCI Heart Disease Dataset.csv')
     df['sex'][df['sex'] == 1] = 'male'
     df['cp'][df['cp'] == 0] = 'typical angina'
